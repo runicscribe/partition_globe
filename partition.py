@@ -95,19 +95,41 @@ def get_segment(lon, lat):
 
     # Create a shapely transform for warping Lon/Lat to studs
     if hemisphere < 0:
-      transform = create_stretch_transform(lon_mid, 1/(base_step_stud*lon_hi_stud_to_deg), 1-lon_lo_stud_to_deg/lon_hi_stud_to_deg, hemisphere*lat_max,  1/(lat_max-lat_min), coefficients[2])
+      print("step lo {} step hi {} stud lo {} stud hi {}".format(lon_step_lo_deg, lon_step_hi_deg, lon_lo_stud_to_deg,
+                                                                   lon_hi_stud_to_deg))
+      transform = create_stretch_transform(
+          lon_mid,                                  # x_mid
+          1/(base_step_stud*lon_hi_stud_to_deg),    # x_scale
+          lon_hi_stud_to_deg/(lon_lo_stud_to_deg)-1,  # x_ratio
+          hemisphere*lat_max,                       # y_low
+          1/(lat_max-lat_min),                      # y_scale
+          coefficients[2])                          # y_coeff
     else:
-      #.42
-      print("step lo {} step hi {} stud lo {} stud hi {}".format(lon_step_lo_deg, lon_step_hi_deg,lon_lo_stud_to_deg,lon_hi_stud_to_deg))
-      transform = create_stretch_transform(lon_mid, 1/(base_step_stud*lon_lo_stud_to_deg), lon_lo_stud_to_deg/lon_hi_stud_to_deg-1, lat_min, 1/(lat_max-lat_min), coefficients[2])
+        transform = create_stretch_transform(
+          lon_mid,                                  # x_mid
+          1/(base_step_stud*lon_lo_stud_to_deg),    # x_scale
+          lon_lo_stud_to_deg/lon_hi_stud_to_deg-1,  # x_ratio
+          lat_min,                                  # y_low
+          1/(lat_max-lat_min),                      # y_scale
+          coefficients[2])                          # y_coeff
 
     return LineString([ll, lr, ur, ul, ll]), grid, transform
 
 
-# Shapely WGS84 to stud transform
-# Linear scale of x coordinate relative to x_mid based on ratio of y to ymin/stud_to_deg + ymax/stud_to_deg. y is unchanged
-# Apply to geoms after clipping.
 def create_stretch_transform(x_mid, x_scale, x_ratio, y_low, y_scale, y_coeff):
+    """
+    Shapely WGS84 to stud transform
+    Linear scale of x coordinate relative to x_mid based on ratio of y to ymin/stud_to_deg + ymax/stud_to_deg. y is unchanged
+    Should be applyied to geoms after clipping.
+
+    :param x_mid: X translation
+    :param x_scale: Base x scale
+    :param x_ratio: Additional X scale relative to y
+    :param y_low: Y translation
+    :param y_scale: Y scale to y E [0:1]
+    :param y_coeff: Additional Y scale to match LAT_STEP coefficents of quadrant (applied after x scaling)
+    :return:
+    """
     print("X: off {} scale {} rat {} | Y: off {} scale {}".format(x_mid, x_scale, x_ratio, y_low, y_scale))
 
     def stretch_transform(x, y, z=None):

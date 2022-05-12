@@ -131,7 +131,7 @@ def draw_stretch_box(world_shp, x, y):
     plt.axis("off")
     plt.axis("tight")
     plt.axis("image")
-    plt.savefig("output/block_{}_{}.png".format(x,y), bbox_inches="tight", pad_inches=0)
+    plt.savefig("output/block_{}_{}.png".format(x, y), bbox_inches="tight", pad_inches=0)
     return plt
 
 
@@ -171,5 +171,5 @@ def draw_stretch_world(world_shp):
 
 
 if __name__ == '__main__':
-    #draw_stretch_world("world/World_Map_Geometry_fixed2.shp").show()
-    draw_stretch_box("world/World_Map_Geometry_fixed2.shp", 6, -3).show()
+    draw_stretch_world("world/World_Map_Geometry_fixed2.shp").show()
+    #draw_stretch_box("world/World_Map_Geometry_fixed2.shp", 0, -1).show()
