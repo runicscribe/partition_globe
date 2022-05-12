@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import geopandas as gpd
 import pandas as pd
 from collections.abc import Iterable
+from os.path import join
 
 # Tool for converting a regular world map in lon/lat coordinates into quadrants compatible with the layout of
 # LEGO #21332 "The Globe", to assist in the creation of custom maps
@@ -12,7 +13,7 @@ from collections.abc import Iterable
 green = "#108440"
 dk_blue = "#072a64"
 
-def draw_world(world_shp):
+def draw_world(world_shp, outdir="output"):
     """
     Draw all quadrants in WGS84
     :param world_shp: Name of the shapefile to render within quadrants
@@ -33,10 +34,10 @@ def draw_world(world_shp):
     s = world_gdf.append(gpd.GeoDataFrame(grids, geometry='geometry')).append(outlines)
     s.plot(column='parity')
     plt.axis('off')
-    plt.savefig("output/world.png", bbox_inches=0)
+    plt.savefig(join(outdir, "world.png"), bbox_inches=0)
 
 
-def draw_box(world_shp, x, y):
+def draw_box(world_shp, x, y, outdir="output"):
     """
     Draw a single quadrant in WGS84
     :param world_shp: Name of the shapefile to render within quadrants
@@ -63,7 +64,7 @@ def draw_box(world_shp, x, y):
     plt.axis("off")
     plt.axis("tight")
     plt.axis("image")
-    plt.savefig("output/grid_{}_{}.png".format(x, y), bbox_inches="tight", pad_inches=0)
+    plt.savefig(join(outdir, "grid_{}_{}.png".format(x, y)), bbox_inches="tight", pad_inches=0)
     return plt
 
 
@@ -114,7 +115,7 @@ def build_stretch_box(world_shp, x, y):
         return [bounds_tf, lines_tf, None]
 
 
-def draw_stretch_box(world_shp, x, y):
+def draw_stretch_box(world_shp, x, y, outdir="output"):
     """
     Draw a single quadrant, warped to square
     :param world_shp: Name of the shapefile to render within quadrants
@@ -133,11 +134,11 @@ def draw_stretch_box(world_shp, x, y):
     plt.axis("off")
     plt.axis("tight")
     plt.axis("image")
-    plt.savefig("output/block_{}_{}.png".format(x, y), bbox_inches="tight", pad_inches=0)
+    plt.savefig(join(outdir, "block_{}_{}.png".format(x, y)), bbox_inches="tight", pad_inches=0)
     return plt
 
 
-def draw_stretch_world(world_shp):
+def draw_stretch_world(world_shp, outdir="output"):
     """
     Draw all quadrants, warped to square
 
@@ -168,7 +169,7 @@ def draw_stretch_world(world_shp):
     plt.axis("off")
     plt.axis("tight")
     plt.axis("image")
-    plt.savefig("output/world_partitions.png", bbox_inches="tight", pad_inches=0, dpi=400)
+    plt.savefig(join(outdir, "world_partitions.png"), bbox_inches="tight", pad_inches=0, dpi=400)
     return plt
 
 
