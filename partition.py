@@ -7,21 +7,9 @@ from shapely.geometry import LineString, Point
 
 lon_count = 16
 base_step_stud = 6
-base_step_deg = 360.0/lon_count
+base_step_deg = 360.0/lon_count  # 22.5
 lon_offset = -177  # Use -168 for earth
 lat_count = 4
-
-
-#  LON,LAT   Even    Odd
-#  0,4
-#  0,3
-#  0,2
-#  0,1
-#  0,0       22.5,22.5
-#  0,-1
-#  0,-2
-#  0,-3
-#  0,-4
 
 # Cooeficients describing the shape of each quadrant
 # First index is abs(lat) where lat is the vertical quadrant E [-3,3] (Since the shapes of northern and southern quadrants are mirrored)
@@ -34,18 +22,21 @@ step_coefficients = [
     [[1, 1, 1], [1, 2/3, 1]],
     [[1, 1/3, 1], [2/3, 2/3, 1]],
     [[1/3, 1/3, 2/3], [2/3, 1/3, 2/3]],
-    [[1/3, 0, 5/6], [1/3, 0, 5/6]]
+    [[1/3, 0, 5/6], [1/3, 0, 5/6]]      # This segment covers the poles, and isn't really used, b/c 0 scales to infinity
 ]
-sc = 100  # pixels per stud [deprecated]
 
 
 def get_segment(lon, lat):
-    '''
+    """
+    Construct the WGS84 layout of the segment at lon/lat
 
     :param lon: Longitudinal index lon ∈ [0,15]
     :param lat: Latitudinal index lat ∈ [-4,4]
-    :return:
-    '''
+    :return: (bounds, gridlines, transform)
+             bounds: Lat/Lon boundary of the segment, as a shapely LineString
+             gridlines: List of Linestrings representing bounds between studs within the segment
+             transform: Shapely transform for converting between lat/lon and quadrant coordinates
+    """
 
     # Extract cooeficient indices from lon/lat
     parity = lon % 2
@@ -75,10 +66,7 @@ def get_segment(lon, lat):
 
     # Calculate the other lat/lon coordinates of the quadrant
     lat_max = lat_min + base_step_deg*coefficients[2]
-    lat_mid = lat_min + base_step_deg*coefficients[2]/2
     lon_mid = lon*base_step_deg + lon_offset
-    lon_min = lon_mid - lon_step_lo_deg / 2
-    lon_max = lon_mid + lon_step_lo_deg / 2
 
     ll = [lon_mid - lon_step_lo_deg / 2, lat_min*hemisphere]
     lr = [lon_mid + lon_step_lo_deg / 2, lat_min*hemisphere]
@@ -87,11 +75,13 @@ def get_segment(lon, lat):
 
     grid = []
     # Construct Latitude lines
-    for i in range(-int(base_step_stud*coefficients[1]/2), int(base_step_stud*coefficients[1]/2)+1):
-        grid.append(LineString([[lon_mid + i*lon_lo_stud_to_deg, lat_min*hemisphere], [lon_mid + i*lon_hi_stud_to_deg, lat_max*hemisphere]]))
+    for i in range(-int(base_step_stud*coefficients[0]/2), int(base_step_stud*coefficients[0]/2)+1):
+        grid.append(LineString([[lon_mid + i*lon_lo_stud_to_deg, lat_min*hemisphere],
+                                [lon_mid + i*lon_hi_stud_to_deg, lat_max*hemisphere]]))
     # Construct Longitude lines (width is just max width, not scaled to box)
-    for j in range(0, int(sc*base_step_stud*coefficients[2])):
-        grid.append(LineString([[lon_mid - base_step_deg, (lat_min + j*base_step_deg/base_step_stud)*hemisphere], [lon_mid + base_step_deg, (lat_min + j*base_step_deg/base_step_stud)*hemisphere]]))
+    for j in range(0, int(base_step_stud*coefficients[2])):
+        grid.append(LineString([[lon_mid - base_step_deg, (lat_min + j*base_step_deg/base_step_stud)*hemisphere],
+                                [lon_mid + base_step_deg, (lat_min + j*base_step_deg/base_step_stud)*hemisphere]]))
 
     # Create a shapely transform for warping Lon/Lat to studs
     if hemisphere < 0:
@@ -128,8 +118,6 @@ def create_stretch_transform(x_mid, x_scale, x_ratio, y_low, y_scale, y_coeff):
     :param y_coeff: Additional Y scale to match LAT_STEP coefficents of quadrant (applied after x scaling)
     :return:
     """
-    #print("X: off {} scale {} rat {} | Y: off {} scale {}".format(x_mid, x_scale, x_ratio, y_low, y_scale))
-
     def stretch_transform(x, y, z=None):
         if isinstance(x, Iterable):
             raise TypeError
