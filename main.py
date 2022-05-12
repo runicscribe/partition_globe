@@ -9,6 +9,8 @@ from collections.abc import Iterable
 # Tool for converting a regular world map in lon/lat coordinates into quadrants compatible with the layout of
 # LEGO #21332 "The Globe", to assist in the creation of custom maps
 
+green = "#108440"
+dk_blue = "#072a64"
 
 def draw_world(world_shp):
     """
@@ -47,13 +49,13 @@ def draw_box(world_shp, x, y):
     for line in grid:
         grids.append({'color': "#FFFFFF", 'geometry': line})
 
-    bounds = gpd.GeoDataFrame([{'color': "#000088", 'geometry': border.convex_hull}], geometry='geometry', crs="EPSG:4326")
-    lines = gpd.GeoDataFrame(grids, geometry='geometry', crs="EPSG:4326")
+    bounds = gpd.GeoDataFrame([{'color': dk_blue, 'geometry': border.convex_hull}], geometry='geometry', crs=None)
+    lines = gpd.GeoDataFrame(grids, geometry='geometry', crs=None)
     lines.geometry = lines.buffer(0.1).clip(bounds)
     
     lines = lines.assign(color="#FFFFFF")
     world_gdf = gpd.read_file(world_shp).clip(bounds)
-    world_gdf['color'] = "#00BB00"
+    world_gdf['color'] = green
 
     s = pd.concat([bounds, world_gdf, lines])
     s.plot(color=s["color"])
@@ -61,7 +63,7 @@ def draw_box(world_shp, x, y):
     plt.axis("off")
     plt.axis("tight")
     plt.axis("image")
-    plt.savefig("output/grid_{}_{}.png".format(x,y), bbox_inches="tight", pad_inches=0)
+    plt.savefig("output/grid_{}_{}.png".format(x, y), bbox_inches="tight", pad_inches=0)
     return plt
 
 
@@ -94,19 +96,19 @@ def build_stretch_box(world_shp, x, y):
         grids.append({'color': "#FFFFFF", 'geometry': line})
         grids_tf.append({'color': "#FFFFFF", 'geometry': transform(shift_transform, transform(tf, line))})
     
-    bounds = gpd.GeoDataFrame([{'color': "#000088", 'geometry': border.convex_hull}], geometry='geometry')
+    bounds = gpd.GeoDataFrame([{'color': dk_blue, 'geometry': border.convex_hull}], geometry='geometry')
     lines = gpd.GeoDataFrame(grids, geometry='geometry')
 
     world_gdf = gpd.read_file(world_shp).clip(bounds)
     
-    bounds_tf = gpd.GeoDataFrame([{'color': "#000088", 'geometry': transform(shift_transform, transform(tf, border.convex_hull))}], geometry='geometry', crs=None)
+    bounds_tf = gpd.GeoDataFrame([{'color': dk_blue, 'geometry': transform(shift_transform, transform(tf, border.convex_hull))}], geometry='geometry', crs=None)
     lines_tf = gpd.GeoDataFrame(grids_tf, geometry='geometry', crs=None)
     lines_tf.geometry = lines_tf.buffer(0.01).clip(bounds_tf)
     lines_tf = lines_tf.assign(color="#FFFFFF")
     
     if len(world_gdf.index) > 0:
         world_geom = world_gdf.dissolve().geometry.item()  # [list(world_gdf.geometry.exterior.iloc[row_id].coords) for row_id in range(world_gdf.shape[0])]
-        world_tf = gpd.GeoDataFrame([{'color': "#00BB00", 'geometry': transform(shift_transform, transform(tf, world_geom))}], geometry='geometry', crs=None)
+        world_tf = gpd.GeoDataFrame([{'color': green, 'geometry': transform(shift_transform, transform(tf, world_geom))}], geometry='geometry', crs=None)
         return [bounds_tf, lines_tf, world_tf]
     else:
         return [bounds_tf, lines_tf, None]
@@ -156,14 +158,14 @@ def draw_stretch_world(world_shp):
     worlds_gdf = pd.concat(worlds)
     bounds_gdf = pd.concat(bounds)
     lines_gdf = pd.concat(lines)
-    worlds_gdf = worlds_gdf.assign(color="#00BB00")
-    bounds_gdf = bounds_gdf.assign(color="#000088")
+    worlds_gdf = worlds_gdf.assign(color=green)
+    bounds_gdf = bounds_gdf.assign(color=dk_blue)
     lines_gdf = lines_gdf.assign(color="#FFFFFF")
     
     s = pd.concat([bounds_gdf, worlds_gdf, lines_gdf])        
     s.plot(color=s["color"])
 
-    #plt.axis("off")
+    plt.axis("off")
     plt.axis("tight")
     plt.axis("image")
     plt.savefig("output/world_partitions.png", bbox_inches="tight", pad_inches=0, dpi=400)

@@ -95,12 +95,10 @@ def get_segment(lon, lat):
 
     # Create a shapely transform for warping Lon/Lat to studs
     if hemisphere < 0:
-      print("step lo {} step hi {} stud lo {} stud hi {}".format(lon_step_lo_deg, lon_step_hi_deg, lon_lo_stud_to_deg,
-                                                                   lon_hi_stud_to_deg))
-      transform = create_stretch_transform(
+        transform = create_stretch_transform(
           lon_mid,                                  # x_mid
           1/(base_step_stud*lon_hi_stud_to_deg),    # x_scale
-          lon_hi_stud_to_deg/(lon_lo_stud_to_deg)-1,  # x_ratio
+          lon_hi_stud_to_deg/lon_lo_stud_to_deg-1,  # x_ratio
           hemisphere*lat_max,                       # y_low
           1/(lat_max-lat_min),                      # y_scale
           coefficients[2])                          # y_coeff
@@ -130,7 +128,7 @@ def create_stretch_transform(x_mid, x_scale, x_ratio, y_low, y_scale, y_coeff):
     :param y_coeff: Additional Y scale to match LAT_STEP coefficents of quadrant (applied after x scaling)
     :return:
     """
-    print("X: off {} scale {} rat {} | Y: off {} scale {}".format(x_mid, x_scale, x_ratio, y_low, y_scale))
+    #print("X: off {} scale {} rat {} | Y: off {} scale {}".format(x_mid, x_scale, x_ratio, y_low, y_scale))
 
     def stretch_transform(x, y, z=None):
         if isinstance(x, Iterable):
