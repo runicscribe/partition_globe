@@ -96,7 +96,7 @@ def build_stretch_box(world_shp, x, y):
         grids.append({'color': "#FFFFFF", 'geometry': line})
         grids_tf.append({'color': "#FFFFFF", 'geometry': transform(shift_transform, transform(tf, line))})
     
-    bounds = gpd.GeoDataFrame([{'color': dk_blue, 'geometry': border.convex_hull}], geometry='geometry')
+    bounds = gpd.GeoDataFrame([{'color': dk_blue, 'geometry': border.convex_hull}], geometry='geometry', crs="EPSG:4326")
     lines = gpd.GeoDataFrame(grids, geometry='geometry')
 
     world_gdf = gpd.read_file(world_shp).clip(bounds)
@@ -174,4 +174,4 @@ def draw_stretch_world(world_shp):
 
 if __name__ == '__main__':
     draw_stretch_world("world/World_Map_Geometry_fixed2.shp").show()
-    #draw_stretch_box("world/World_Map_Geometry_fixed2.shp", 0, -1).show()
+    # draw_stretch_box("world/World_Map_Geometry_fixed2.shp", 0, -1).show()
