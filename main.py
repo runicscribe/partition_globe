@@ -1,21 +1,27 @@
 
-from partition import get_segment, create_matrix_transform, sc, step_coefficients, base_step_stud
-from shapely.geometry import Polygon, MultiPolygon
+from partition import get_segment
 from shapely.ops import transform
-from shapely.affinity import affine_transform
 import matplotlib.pyplot as plt
-import cv2
-import numpy as np
 import geopandas as gpd
 import pandas as pd
 from collections.abc import Iterable
 
+# Tool for converting a regular world map in lon/lat coordinates into quadrants compatible with the layout of
+# LEGO #21332 "The Globe", to assist in the creation of custom maps
+
+
 def draw_world(world_shp):
+    """
+    Draw all quadrants in WGS84
+    :param world_shp: Name of the shapefile to render within quadrants
+    :return:
+    """
+
     grids = []
     outlines = []
     for lon in range(0, 16):
         for lat in range(-3, 4):
-            border, grid, anchors = get_segment(lon, lat)
+            border, grid, tf = get_segment(lon, lat)
             outlines.append({'parity': lon % 2, 'geometry': border})
             for line in grid:
                 grids.append({'parity': -1, 'geometry': line})
@@ -26,11 +32,17 @@ def draw_world(world_shp):
     s.plot(column='parity')
     plt.axis('off')
     plt.savefig("output/world.png", bbox_inches=0)
-    
-def draw_box(world_shp, x, y):
 
-    border, grid, anchors = get_segment(x, y)
-    print(anchors)
+
+def draw_box(world_shp, x, y):
+    """
+    Draw a single quadrant in WGS84
+    :param world_shp: Name of the shapefile to render within quadrants
+    :param x: X-coordinate of quadrant x E [0,15]
+    :param y: Y-coordinate of quadrant y E [-3,3]
+    :return:
+    """
+    border, grid, tf = get_segment(x, y)
     grids = []
     for line in grid:
         grids.append({'color': "#FFFFFF", 'geometry': line})
@@ -43,8 +55,6 @@ def draw_box(world_shp, x, y):
     world_gdf = gpd.read_file(world_shp).clip(bounds)
     world_gdf['color'] = "#00BB00"
 
-    
-    #s = bounds.append(world_gdf)
     s = pd.concat([bounds, world_gdf, lines])
     s.plot(color=s["color"])
 
@@ -54,36 +64,39 @@ def draw_box(world_shp, x, y):
     plt.savefig("output/grid_{}_{}.png".format(x,y), bbox_inches="tight", pad_inches=0)
     return plt
 
-def build_stretch_box(world_shp, x, y):
 
-    border, grid, anchors, tf= get_segment(x, y)
-    print(anchors)
-    
+def build_stretch_box(world_shp, x, y):
+    """
+    Warped a single quadrant to square coordinates
+    :param world_shp: Name of the shapefile to render within quadrants
+    :param x: X-coordinate of quadrant x E [0,15]
+    :param y: Y-coordinate of quadrant y E [-3,3]
+    :return: [bounds_tf, lines_tf, world_tf] bounds, gridlines, and geometry dataframes, warped to square
+    """
+    border, grid, tf = get_segment(x, y)
+
+    # Shapely transform to shift by x, y-0.5, to layout segments around world
     def shift_transform(i, j, k=None):
         if isinstance(i, Iterable):
             raise TypeError
-        #scale y to [0:1]
+        # scale y to [0:1]
         xp = i+x
         yp = j+y-0.5
+        # Last segment is 4 tall instead of 6, so shift up by 1/3
         if y == -3:
             yp = yp + 1/3
 
         return tuple(filter(lambda a: a is not None, [xp, yp]))
-        
-        
+
     grids = []
     grids_tf = []
     for line in grid:
         grids.append({'color': "#FFFFFF", 'geometry': line})
         grids_tf.append({'color': "#FFFFFF", 'geometry': transform(shift_transform, transform(tf, line))})
-        
-    
-
     
     bounds = gpd.GeoDataFrame([{'color': "#000088", 'geometry': border.convex_hull}], geometry='geometry')
     lines = gpd.GeoDataFrame(grids, geometry='geometry')
-    
-    
+
     world_gdf = gpd.read_file(world_shp).clip(bounds)
     
     bounds_tf = gpd.GeoDataFrame([{'color': "#000088", 'geometry': transform(shift_transform, transform(tf, border.convex_hull))}], geometry='geometry', crs=None)
@@ -92,23 +105,27 @@ def build_stretch_box(world_shp, x, y):
     lines_tf = lines_tf.assign(color="#FFFFFF")
     
     if len(world_gdf.index) > 0:
-        world_geom = world_gdf.dissolve().geometry.item() #[list(world_gdf.geometry.exterior.iloc[row_id].coords) for row_id in range(world_gdf.shape[0])]
+        world_geom = world_gdf.dissolve().geometry.item()  # [list(world_gdf.geometry.exterior.iloc[row_id].coords) for row_id in range(world_gdf.shape[0])]
         world_tf = gpd.GeoDataFrame([{'color': "#00BB00", 'geometry': transform(shift_transform, transform(tf, world_geom))}], geometry='geometry', crs=None)
         return [bounds_tf, lines_tf, world_tf]
     else:
         return [bounds_tf, lines_tf, None]
-        
-    #TODO: Add tf to offset by x, y-0.5
+
 
 def draw_stretch_box(world_shp, x, y):
+    """
+    Draw a single quadrant, warped to square
+    :param world_shp: Name of the shapefile to render within quadrants
+    :param x: X-coordinate of quadrant x E [0,15]
+    :param y: Y-coordinate of quadrant y E [-3,3]
+    :return: The plot object the quadrant is drawn to
+    """
     bounds, lines, world = build_stretch_box(world_shp, x, y)
     if world is not None:
         s = pd.concat([bounds, lines])
     else:
         s = pd.concat([bounds, lines, world])
-    #s = bounds.append(world_gdf)
-    
-    #TODO - return s instead, plot in main to support full map.
+
     s.plot(color=s["color"])
 
     plt.axis("off")
@@ -116,30 +133,15 @@ def draw_stretch_box(world_shp, x, y):
     plt.axis("image")
     plt.savefig("output/block_{}_{}.png".format(x,y), bbox_inches="tight", pad_inches=0)
     return plt
-    
 
-def warp_box(img, targets, target_width, target_height):
-    im = cv2.imread(img)
-    targets.append([target_width/2, target_height/2])
-    width, height = im.shape[:2]
-    im_bounds = [[0,0], [height, 0], [0, width], [height, width], [height/2, width/2]]
-    print(im_bounds)
-    print(targets)
-    #This isn't actually the right approach, need something different (trapezoid transform)
-    matrix, status = cv2.findHomography(np.float32(im_bounds), np.float32(targets))
-    result = cv2.warpPerspective(im, matrix, (target_width,target_height))
-    cv2.imshow("source", im)
-    cv2.imshow("target", result)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    
-def draw_warp(world_shp, x, y):
-    draw_box(world_shp, x, y)
-    border, grid, anchors = get_segment(x, y)
-    coefficients = step_coefficients[int(abs(y))][x%2]
-    warp_box("output/grid_{}_{}.png".format(x,y), anchors, int(coefficients[0]*base_step_stud*sc), int(coefficients[2]*base_step_stud*sc))
-    
+
 def draw_stretch_world(world_shp):
+    """
+    Draw all quadrants, warped to square
+
+    :param world_shp: Name of the shapefile to render within quadrants
+    :return: The plot object the quadrants are drawn to
+    """
     bounds = []
     lines = []
     worlds = []
@@ -167,11 +169,7 @@ def draw_stretch_world(world_shp):
     plt.savefig("output/world_partitions.png", bbox_inches="tight", pad_inches=0, dpi=400)
     return plt
 
+
 if __name__ == '__main__':
     #draw_stretch_world("world/World_Map_Geometry_fixed2.shp").show()
     draw_stretch_box("world/World_Map_Geometry_fixed2.shp", 6, -3).show()
-    
-
-
-
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
