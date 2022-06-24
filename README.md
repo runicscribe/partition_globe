@@ -13,7 +13,11 @@ See the [img](./img) dir for example output.
 
 ## Usage
 
+Edit the `__main__` section at the bottom of main.py to point to the shapefile you are using, then run the main.py 
+script with python.
+A matplotlib window will show a preview of the result, which will also be saved in `./output/world_partitions.png`
 
+To change the color scheme of the result, edit the values of the `green` and `dk_blue` variables at the top of main.py.
 
 ## Installation
 
