@@ -5,13 +5,15 @@ import matplotlib.pyplot as plt
 import geopandas as gpd
 import pandas as pd
 from collections.abc import Iterable
-from os.path import join
+from os.path import join, exists
+from os import mkdir
 
 # Tool for converting a regular world map in lon/lat coordinates into quadrants compatible with the layout of
 # LEGO #21332 "The Globe", to assist in the creation of custom maps
 
 green = "#108440"
 dk_blue = "#072a64"
+
 
 def draw_world(world_shp, outdir="output"):
     """
@@ -169,10 +171,12 @@ def draw_stretch_world(world_shp, outdir="output"):
     plt.axis("off")
     plt.axis("tight")
     plt.axis("image")
+    if not exists(outdir):
+        mkdir(outdir)
     plt.savefig(join(outdir, "world_partitions.png"), bbox_inches="tight", pad_inches=0, dpi=400)
     return plt
 
 
 if __name__ == '__main__':
-    draw_stretch_world("world/World_Map_Geometry_fixed2.shp").show()
+    draw_stretch_world("daemachina/postprocessed_84.shp").show()
     # draw_stretch_box("world/World_Map_Geometry_fixed2.shp", 0, -1).show()

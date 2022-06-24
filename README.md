@@ -10,3 +10,38 @@ with installing GDAL
 Source data must consist of a shapefile in EPSG:4326
 
 See the [img](./img) dir for example output.
+
+## Usage
+
+
+
+## Installation
+
+### Prerequisites
+
+Requires Python 3
+
+### Installation
+
+```
+pip install -r requirements.txt
+```
+
+### Windows
+
+One of the dependencies for this project (geopandas) requires GDAL, which can be a little tricky to install on Windows. 
+Before running the install command above, follow these steps:
+
+Download the [gdal](https://www.lfd.uci.edu/~gohlke/pythonlibs/#_gdal), 
+[fiona](https://www.lfd.uci.edu/~gohlke/pythonlibs/#_fiona), and 
+[pygeos](https://www.lfd.uci.edu/~gohlke/pythonlibs/#_pygeos) wheels for your Python version and install each of them 
+with:
+
+```
+python -m pip install path\to\wheel\file.whl
+```
+
+Download and install the [MS C++ build tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) and restart 
+your computer.
+
+Then run `pip install -r requirements.txt` as above.
